@@ -38,11 +38,19 @@ class ScheduleService(DeviceFactory deviceFactory, IOptions<Settings> options) :
         var now = DateTime.Now;
         foreach (var rule in settings.RelayRules)
         {
-            if (now.Hour == rule.Time.Hour && now.Minute == rule.Time.Minute && await deviceFactory.CreateDevice(rule.DeviceName) is IRelay relay)
+            if (now.Hour == rule.Time.Hour && now.Minute == rule.Time.Minute)
             {
-                await relay.SetState(rule.State);
-                Log.Information("Turn {State} relay {DeviceName} as per schedule", rule.State ? "ON" : "OFF", rule.DeviceName);
+                await RunRule(rule);
             }
+        }
+    }
+
+    private async Task RunRule(Settings.RelayRule rule)
+    {
+        if (await deviceFactory.CreateDevice(rule.DeviceName) is IRelay relay)
+        {
+            await relay.SetState(rule.State);
+            Log.Information("Turn {State} relay {DeviceName} as per schedule", rule.State ? "ON" : "OFF", rule.DeviceName);
         }
     }
 }
