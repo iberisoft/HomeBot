@@ -23,4 +23,5 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
             services.AddSingleton<IMessageService, MessageService>();
             services.AddHostedService(serviceProvider => (MessageService)serviceProvider.GetRequiredService<IMessageService>());
             services.AddHostedService<ScheduleService>();
+            services.AddHostedService<TelegramService>();
         });
