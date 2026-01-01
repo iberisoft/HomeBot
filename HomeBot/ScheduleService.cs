@@ -19,7 +19,7 @@ class ScheduleService(DeviceFactory deviceFactory, IOptions<Settings> options) :
 
     private async Task RunScheduler()
     {
-        m_Timer = new(TimeSpan.FromSeconds(59));
+        m_Timer = new(TimeSpan.FromSeconds(10));
         do
         {
             await OnTimerTick();
@@ -33,16 +33,34 @@ class ScheduleService(DeviceFactory deviceFactory, IOptions<Settings> options) :
         await m_TimerTask;
     }
 
+    DateTime m_Timestamp;
+    readonly HashSet<Settings.RelayRule> m_RunRules = [];
+
     private async Task OnTimerTick()
     {
-        var now = DateTime.Now;
+        if (SetTimestamp())
+        {
+            m_RunRules.Clear();
+        }
         foreach (var rule in settings.RelayRules)
         {
-            if (now.Hour == rule.Time.Hour && now.Minute == rule.Time.Minute)
+            if (m_Timestamp.Hour == rule.Time.Hour && m_Timestamp.Minute == rule.Time.Minute && m_RunRules.Add(rule))
             {
                 await RunRule(rule);
             }
         }
+    }
+
+    private bool SetTimestamp()
+    {
+        var newDay = false;
+        var timestamp = DateTime.Now;
+        if (m_Timestamp.Date != timestamp.Date)
+        {
+            newDay = true;
+        }
+        m_Timestamp = timestamp;
+        return newDay;
     }
 
     private async Task RunRule(Settings.RelayRule rule)
