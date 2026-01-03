@@ -92,7 +92,8 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
 
         if (settings.ChatId == update.Message.Chat.Id)
         {
-            switch (update.Message.Text)
+            var command = update.Message.Text.Split()[0].Split('@')[0];
+            switch (command)
             {
                 case "/update":
                     await HandleUpdateCommand();
