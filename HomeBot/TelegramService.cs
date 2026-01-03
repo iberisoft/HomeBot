@@ -87,6 +87,17 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
         if (settings.ChatId == 0)
         {
             await m_BotClient.SendMessage(update.Message.Chat.Id, $"Assign `{update.Message.Chat.Id}` to `ChatId` setting then restart service", parseMode: ParseMode.MarkdownV2);
+            return;
+        }
+
+        if (settings.ChatId == update.Message.Chat.Id)
+        {
+            switch (update.Message.Text)
+            {
+                case "/schedule":
+                    await m_BotClient.SendMessage(settings.ChatId, BuildScheduleTexts(), parseMode: ParseMode.MarkdownV2);
+                    break;
+            }
         }
     }
 
@@ -147,5 +158,19 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
     {
         var buttons = settings.RelayButtons.Select(button => InlineKeyboardButton.WithCallbackData(button.Text, button.DeviceName));
         return new(buttons);
+    }
+
+    private string BuildScheduleTexts()
+    {
+        var lines = options.Value.RelayRules
+            .GroupBy(rule => rule.DeviceName)
+            .Select(group =>
+            {
+                var deviceName = group.Key;
+                var deviceText = settings.RelayButtons.FirstOrDefault(button => button.DeviceName == deviceName)?.Text ?? deviceName;
+                var lines = group.Select(rule => $"• `{rule.Time:HH:mm}` → `{(rule.State ? "ON" : "OFF")}`");
+                return string.Join("\n", [deviceText, ..lines]);
+            });
+        return string.Join("\n\n", lines);
     }
 }
