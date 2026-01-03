@@ -95,23 +95,31 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
             switch (update.Message.Text)
             {
                 case "/schedule":
-                    await m_BotClient.SendMessage(settings.ChatId, BuildScheduleTexts(), parseMode: ParseMode.MarkdownV2);
+                    await HandleScheduleCommand();
                     break;
             }
         }
+    }
+
+    private async Task HandleScheduleCommand()
+    {
+        await m_BotClient.SendMessage(settings.ChatId, BuildScheduleTexts(), parseMode: ParseMode.MarkdownV2);
     }
 
     private async Task HandleCallbackQuery(Update update)
     {
         if (settings.ChatId == update.CallbackQuery.Message.Chat.Id)
         {
-            var relayName = update.CallbackQuery.Data;
-            var newState = !m_RelayStates[relayName];
-            await m_Relays[relayName].SetState(newState);
-            Log.Information("Toggle {State} relay {DeviceName}", newState ? "ON" : "OFF", relayName);
+            await HandleButtonClick(update.CallbackQuery.Data);
         }
-
         await m_BotClient.AnswerCallbackQuery(update.CallbackQuery.Id);
+    }
+
+    private async Task HandleButtonClick(string relayName)
+    {
+        var newState = !m_RelayStates[relayName];
+        await m_Relays[relayName].SetState(newState);
+        Log.Information("Toggle {State} relay {DeviceName}", newState ? "ON" : "OFF", relayName);
     }
 
     private static Task HandleError(Exception exception)
