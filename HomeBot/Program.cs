@@ -6,6 +6,14 @@ using Microsoft.Extensions.Options;
 using Serilog;
 
 var host = CreateHostBuilder(args).Build();
+
+var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
+lifetime.ApplicationStopping.Register(async () =>
+{
+    var deviceFactory = host.Services.GetRequiredService<DeviceFactory>();
+    await deviceFactory.CloseAllDevices();
+});
+
 host.Run();
 
 static IHostBuilder CreateHostBuilder(string[] args) =>

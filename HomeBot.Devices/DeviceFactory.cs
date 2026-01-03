@@ -1,6 +1,6 @@
 namespace HomeBot.Devices;
 
-public class DeviceFactory : IAsyncDisposable
+public class DeviceFactory : IDisposable
 {
     readonly IMessageService m_MessageService;
     readonly DeviceInfo[] m_DeviceInfos;
@@ -10,7 +10,12 @@ public class DeviceFactory : IAsyncDisposable
         m_MessageService = messageService;
         m_DeviceInfos = deviceInfos;
 
-        messageService.OnMessageReceived += MessageService_OnMessageReceived;
+        m_MessageService.OnMessageReceived += MessageService_OnMessageReceived;
+    }
+
+    public void Dispose()
+    {
+        m_MessageService.OnMessageReceived -= MessageService_OnMessageReceived;
     }
 
     readonly Dictionary<string, object> m_Devices = [];
@@ -44,14 +49,12 @@ public class DeviceFactory : IAsyncDisposable
         return device;
     }
 
-    public async ValueTask DisposeAsync()
+    public async Task CloseAllDevices()
     {
         foreach (var device in m_MessageDevices)
         {
             await device.UnsubscribeMessages();
         }
-
-        m_MessageService.OnMessageReceived -= MessageService_OnMessageReceived;
     }
 
     private async Task MessageService_OnMessageReceived(string topic, string payload)
