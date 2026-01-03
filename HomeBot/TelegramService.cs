@@ -94,11 +94,20 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
         {
             switch (update.Message.Text)
             {
+                case "/update":
+                    await HandleUpdateCommand();
+                    break;
                 case "/schedule":
                     await HandleScheduleCommand();
                     break;
             }
         }
+    }
+
+    private async Task HandleUpdateCommand()
+    {
+        await DeleteRelayMessage();
+        await UpdateRelayMessage();
     }
 
     private async Task HandleScheduleCommand()
@@ -153,6 +162,7 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
         if (m_RelayMessage != null)
         {
             await m_BotClient.DeleteMessage(settings.ChatId, m_RelayMessage.Id);
+            m_RelayMessage = null;
         }
     }
 
