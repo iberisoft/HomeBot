@@ -1,22 +1,26 @@
 ﻿using HomeBot.Devices;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using MQTTnet;
 
 namespace HomeBot;
 
 class MessageService : IMessageService, IHostedService
 {
+    readonly Settings.MqttBrokerSettings m_Settings;
     readonly IMqttClient m_Client;
 
-    public MessageService()
+    public MessageService(IOptions<Settings> options)
     {
+        m_Settings = options.Value.MqttBroker;
+
         m_Client = new MqttClientFactory().CreateMqttClient();
         m_Client.ApplicationMessageReceivedAsync += e => OnMessageReceived?.Invoke(e.ApplicationMessage.Topic, e.ApplicationMessage.ConvertPayloadToString());
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        var builder = new MqttClientOptionsBuilder().WithTcpServer("localhost");
+        var builder = new MqttClientOptionsBuilder().WithTcpServer(m_Settings.Host, m_Settings.Port);
         var options = builder.Build();
         await m_Client.ConnectAsync(options, cancellationToken);
     }

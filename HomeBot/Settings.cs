@@ -8,6 +8,8 @@ class Settings
 
     public RelayRule[] RelayRules { get; set; } = [];
 
+    public MqttBrokerSettings MqttBroker { get; set; }
+
     public TelegramSettings Telegram { get; set; }
 
     public class RelayRule
@@ -17,6 +19,13 @@ class Settings
         public TimeOnly Time { get; set; }
 
         public bool State { get; set; }
+    }
+
+    public class MqttBrokerSettings
+    {
+        public string Host { get; set; }
+
+        public int Port { get; set; }
     }
 
     public class TelegramSettings
