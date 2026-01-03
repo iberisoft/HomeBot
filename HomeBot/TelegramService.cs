@@ -92,10 +92,13 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
 
     private async Task HandleCallbackQuery(Update update)
     {
-        var relayName = update.CallbackQuery.Data;
-        var newState = !m_RelayStates[relayName];
-        await m_Relays[relayName].SetState(newState);
-        Log.Information("Toggle {State} relay {DeviceName}", newState ? "ON" : "OFF", relayName);
+        if (settings.ChatId == update.CallbackQuery.Message.Chat.Id)
+        {
+            var relayName = update.CallbackQuery.Data;
+            var newState = !m_RelayStates[relayName];
+            await m_Relays[relayName].SetState(newState);
+            Log.Information("Toggle {State} relay {DeviceName}", newState ? "ON" : "OFF", relayName);
+        }
 
         await m_BotClient.AnswerCallbackQuery(update.CallbackQuery.Id);
     }
