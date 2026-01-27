@@ -162,7 +162,13 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
     {
         if (m_RelayMessage != null)
         {
-            await m_BotClient.DeleteMessage(settings.ChatId, m_RelayMessage.Id);
+            try
+            {
+                await m_BotClient.DeleteMessage(settings.ChatId, m_RelayMessage.Id);
+            }
+            catch
+            {
+            }
             m_RelayMessage = null;
         }
     }
