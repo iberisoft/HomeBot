@@ -127,9 +127,12 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
 
     private async Task HandleButtonClick(string relayName)
     {
-        var newState = !m_RelayStates[relayName];
-        await m_Relays[relayName].SetState(newState);
-        Log.Information("Toggle {State} relay {DeviceName}", newState ? "ON" : "OFF", relayName);
+        if (m_RelayStates.TryGetValue(relayName, out var oldState))
+        {
+            var newState = !oldState;
+            await m_Relays[relayName].SetState(newState);
+            Log.Information("Toggle {State} relay {DeviceName}", newState ? "ON" : "OFF", relayName);
+        }
     }
 
     private static Task HandleError(Exception exception)
@@ -175,7 +178,7 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
 
     private string BuildRelayTexts()
     {
-        var lines = settings.RelayButtons.Select(button => m_RelayStates[button.DeviceName] ? $"🟢 *{button.Text}*" : $"🔴 {button.Text}");
+        var lines = settings.RelayButtons.Select(button => m_RelayStates.TryGetValue(button.DeviceName, out var state) ? state ? $"🟢 *{button.Text}*" : $"🔴 {button.Text}" : "");
         return string.Join("\n\n", lines);
     }
 
