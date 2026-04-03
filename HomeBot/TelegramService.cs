@@ -12,7 +12,7 @@ namespace HomeBot;
 
 class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) : IHostedService
 {
-    readonly Settings.TelegramSettings settings = options.Value.Telegram;
+    readonly Settings.TelegramSettings m_Settings = options.Value.Telegram;
     ITelegramBotClient m_BotClient;
     CancellationTokenSource m_BotClientToken;
     readonly Dictionary<string, IRelay> m_Relays = [];
@@ -20,13 +20,13 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        if (settings.BotToken == "")
+        if (m_Settings.BotToken == "")
         {
             Log.Warning("Telegram BotToken setting not defined");
             return;
         }
 
-        m_BotClient = new TelegramBotClient(settings.BotToken);
+        m_BotClient = new TelegramBotClient(m_Settings.BotToken);
         m_BotClientToken = new CancellationTokenSource();
         var receiverOptions = new ReceiverOptions
         {
@@ -51,7 +51,7 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
 
     private async Task CreateRelays()
     {
-        foreach (var button in settings.RelayButtons)
+        foreach (var button in m_Settings.RelayButtons)
         {
             var device = await deviceFactory.CreateDevice(button.DeviceName, true);
             if (device is IRelay relay)
@@ -84,13 +84,13 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
 
     private async Task HandleMessage(Update update)
     {
-        if (settings.ChatId == 0)
+        if (m_Settings.ChatId == 0)
         {
             await m_BotClient.SendMessage(update.Message.Chat.Id, $"Assign `{update.Message.Chat.Id}` to `ChatId` setting then restart service", parseMode: ParseMode.MarkdownV2);
             return;
         }
 
-        if (settings.ChatId == update.Message.Chat.Id)
+        if (m_Settings.ChatId == update.Message.Chat.Id)
         {
             var command = update.Message.Text.Split()[0].Split('@')[0];
             switch (command)
@@ -113,12 +113,12 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
 
     private async Task HandleScheduleCommand()
     {
-        await m_BotClient.SendMessage(settings.ChatId, BuildScheduleTexts(), parseMode: ParseMode.MarkdownV2);
+        await m_BotClient.SendMessage(m_Settings.ChatId, BuildScheduleTexts(), parseMode: ParseMode.MarkdownV2);
     }
 
     private async Task HandleCallbackQuery(Update update)
     {
-        if (settings.ChatId == update.CallbackQuery.Message.Chat.Id)
+        if (m_Settings.ChatId == update.CallbackQuery.Message.Chat.Id)
         {
             await HandleButtonClick(update.CallbackQuery.Data);
         }
@@ -145,7 +145,7 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
 
     private async Task UpdateRelayMessage()
     {
-        if (settings.ChatId == 0)
+        if (m_Settings.ChatId == 0)
         {
             Log.Warning("Telegram ChatId setting not defined");
             return;
@@ -153,11 +153,11 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
 
         if (m_RelayMessage == null)
         {
-            m_RelayMessage = await m_BotClient.SendMessage(settings.ChatId, BuildRelayTexts(), parseMode: ParseMode.MarkdownV2, replyMarkup: BuildRelayKeyboard());
+            m_RelayMessage = await m_BotClient.SendMessage(m_Settings.ChatId, BuildRelayTexts(), parseMode: ParseMode.MarkdownV2, replyMarkup: BuildRelayKeyboard());
         }
         else
         {
-            await m_BotClient.EditMessageText(settings.ChatId, m_RelayMessage.Id, BuildRelayTexts(), parseMode: ParseMode.MarkdownV2, replyMarkup: BuildRelayKeyboard());
+            await m_BotClient.EditMessageText(m_Settings.ChatId, m_RelayMessage.Id, BuildRelayTexts(), parseMode: ParseMode.MarkdownV2, replyMarkup: BuildRelayKeyboard());
         }
     }
 
@@ -167,7 +167,7 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
         {
             try
             {
-                await m_BotClient.DeleteMessage(settings.ChatId, m_RelayMessage.Id);
+                await m_BotClient.DeleteMessage(m_Settings.ChatId, m_RelayMessage.Id);
             }
             catch
             {
@@ -178,13 +178,13 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
 
     private string BuildRelayTexts()
     {
-        var lines = settings.RelayButtons.Select(button => m_RelayStates.TryGetValue(button.DeviceName, out var state) ? state ? $"🟢 *{button.Text}*" : $"🔴 {button.Text}" : "");
+        var lines = m_Settings.RelayButtons.Select(button => m_RelayStates.TryGetValue(button.DeviceName, out var state) ? state ? $"🟢 *{button.Text}*" : $"🔴 {button.Text}" : "");
         return string.Join("\n\n", lines);
     }
 
     private InlineKeyboardMarkup BuildRelayKeyboard()
     {
-        var buttons = settings.RelayButtons.Select(button => InlineKeyboardButton.WithCallbackData(button.Text, button.DeviceName));
+        var buttons = m_Settings.RelayButtons.Select(button => InlineKeyboardButton.WithCallbackData(button.Text, button.DeviceName));
         return new(buttons);
     }
 
@@ -195,7 +195,7 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
             .Select(group =>
             {
                 var deviceName = group.Key;
-                var deviceText = settings.RelayButtons.FirstOrDefault(button => button.DeviceName == deviceName)?.Text ?? deviceName;
+                var deviceText = m_Settings.RelayButtons.FirstOrDefault(button => button.DeviceName == deviceName)?.Text ?? deviceName;
                 var lines = group.Select(rule => $"• `{rule.Time:HH:mm}` → `{(rule.State ? "ON" : "OFF")}`");
                 return string.Join("\n", [deviceText, ..lines]);
             });

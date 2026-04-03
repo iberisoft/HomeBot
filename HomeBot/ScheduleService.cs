@@ -7,7 +7,7 @@ namespace HomeBot;
 
 class ScheduleService(DeviceFactory deviceFactory, IOptions<Settings> options) : IHostedService
 {
-    readonly Settings settings = options.Value;
+    readonly Settings m_Settings = options.Value;
     Task m_TimerTask;
     PeriodicTimer m_Timer;
 
@@ -42,7 +42,7 @@ class ScheduleService(DeviceFactory deviceFactory, IOptions<Settings> options) :
         {
             m_RunRules.Clear();
         }
-        foreach (var rule in settings.RelayRules)
+        foreach (var rule in m_Settings.RelayRules)
         {
             if (m_Timestamp.Hour == rule.Time.Hour && m_Timestamp.Minute == rule.Time.Minute && m_RunRules.Add(rule))
             {
