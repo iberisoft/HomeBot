@@ -10,9 +10,9 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace HomeBot;
 
-class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) : IHostedService
+class TelegramService(DeviceFactory deviceFactory, IOptionsMonitor<Settings> options) : IHostedService
 {
-    readonly Settings.TelegramSettings m_Settings = options.Value.Telegram;
+    readonly Settings.TelegramSettings m_Settings = options.CurrentValue.Telegram;
     ITelegramBotClient m_BotClient;
     CancellationTokenSource m_BotClientToken;
     readonly Dictionary<string, IRelay> m_Relays = [];
@@ -190,7 +190,7 @@ class TelegramService(DeviceFactory deviceFactory, IOptions<Settings> options) :
 
     private string BuildScheduleTexts()
     {
-        var lines = options.Value.RelayRules
+        var lines = options.CurrentValue.RelayRules
             .GroupBy(rule => rule.DeviceName)
             .Select(group =>
             {
