@@ -50,9 +50,9 @@ Settings for the Telegram bot UI and notifications.
 |----------------|-------------
 | `BotToken`     | Token from [@BotFather](https://t.me/BotFather).
 | `ChatId`       | Numeric chat ID the bot listens to and sends messages to (group or user).
-| `RelayButtons` | Inline keyboard.
+| `RelayButtons` | Inline keyboard buttons.
 
-Settings for the inline keyboard buttons.
+Settings for inline keyboard buttons.
 
 | Setting      | Description
 |--------------|-------------
