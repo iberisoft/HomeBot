@@ -78,3 +78,15 @@ After the token is set, the bot can receive messages. `ChatId` is still `0`, the
 5. Restart the service.
 
 Only that chat may use commands and inline buttons; messages from other chats are ignored once `ChatId` is configured.
+
+## Bot commands
+
+The service handles slash commands in the configured chat.
+
+| Command     | What it does
+|-------------|---------------
+| `/update`   | Updates the current control message with the inline keyboard.
+| `/schedule` | Sends a message listing `RelayRules` for each device and time.
+
+You should register these commands in [@BotFather](https://t.me/BotFather) via `/setcommands` to show them in the Telegram UI.
+The bot will respond to these commands even if you skip registration.
