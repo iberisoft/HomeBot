@@ -58,3 +58,23 @@ Settings for inline keyboard buttons.
 |--------------|-------------
 | `DeviceName` | See `Name` in `Devices`.
 | `Text`       | Label on the button (e.g., `Turn on light 💡`).
+
+## Connecting to Telegram
+
+Use the `Telegram` settings to connect the bot to Telegram.
+
+Initially, `BotToken` is empty, the service logs a warning `Telegram BotToken setting not defined` and does not start the Telegram client.
+
+1. Open [@BotFather](https://t.me/BotFather) in Telegram, create a new bot (`/newbot`), and copy the **token** it gives you.
+2. Set `BotToken` to that token.
+3. Restart the service.
+
+After the token is set, the bot can receive messages. `ChatId` is still `0`, the service logs a warning `Telegram ChatId setting not defined`.
+
+1. Add the bot to a group where you want to control relays, or open a private chat with the bot.
+2. Send the bot any text message from that group or private chat.
+3. The bot replies with a message that tells you which number to put in `ChatId`.
+4. Set `ChatId` to that number.
+5. Restart the service.
+
+Only that chat may use commands and inline buttons; messages from other chats are ignored once `ChatId` is configured.
