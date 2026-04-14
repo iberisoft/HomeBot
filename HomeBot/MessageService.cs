@@ -2,12 +2,16 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using MQTTnet;
+using Nito.AsyncEx;
+using Serilog;
 
 namespace HomeBot;
 
 class MessageService : IMessageService, IHostedService
 {
     readonly Settings.MqttBrokerSettings m_Settings;
+    Task m_ConnectClientTask;
+    CancellationTokenSource m_ConnectClientToken;
     readonly IMqttClient m_Client;
 
     public MessageService(IOptions<Settings> options)
@@ -18,15 +22,61 @@ class MessageService : IMessageService, IHostedService
         m_Client.ApplicationMessageReceivedAsync += e => OnMessageReceived?.Invoke(e.ApplicationMessage.Topic, e.ApplicationMessage.ConvertPayloadToString());
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
-        var builder = new MqttClientOptionsBuilder().WithTcpServer(m_Settings.Host, m_Settings.Port);
-        var options = builder.Build();
-        await m_Client.ConnectAsync(options, cancellationToken);
+        m_ConnectClientTask = Task.Run(ConnectClient);
+        return Task.CompletedTask;
+    }
+
+    private async Task ConnectClient()
+    {
+        using (m_ConnectClientToken = new())
+        {
+            while (true)
+            {
+                if (!m_Client.IsConnected)
+                {
+                    try
+                    {
+                        var builder = new MqttClientOptionsBuilder().WithTcpServer(m_Settings.Host, m_Settings.Port);
+                        var options = builder.Build();
+                        await m_Client.ConnectAsync(options);
+                        await ResubscribeMessages();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "Exception occurred");
+                    }
+                }
+                try
+                {
+                    await Task.Delay(5000, m_ConnectClientToken.Token);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+            }
+        }
+    }
+
+    private async Task ResubscribeMessages()
+    {
+        using (await m_SubscribedTopicsLock.LockAsync())
+        {
+            foreach (var topic in m_SubscribedTopics)
+            {
+                await m_Client.SubscribeAsync(topic);
+                Log.Information("Subscribed to messages with topic {Topic}", topic);
+            }
+        }
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
+        m_ConnectClientToken.Cancel();
+        await m_ConnectClientTask;
+
         var builder = new MqttClientDisconnectOptionsBuilder();
         var options = builder.Build();
         await m_Client.DisconnectAsync(options, cancellationToken);
@@ -34,11 +84,42 @@ class MessageService : IMessageService, IHostedService
         m_Client.Dispose();
     }
 
-    public async Task SubscribeMessages(string topic) => await m_Client.SubscribeAsync(topic);
+    readonly HashSet<string> m_SubscribedTopics = [];
+    readonly AsyncLock m_SubscribedTopicsLock = new();
 
-    public async Task UnsubscribeMessages(string topic) => await m_Client.UnsubscribeAsync(topic);
+    public async Task SubscribeMessages(string topic)
+    {
+        if (m_Client.IsConnected)
+        {
+            await m_Client.SubscribeAsync(topic);
+        }
 
-    public async Task PublishMessage(string topic, string payload) => await m_Client.PublishStringAsync(topic, payload);
+        using (await m_SubscribedTopicsLock.LockAsync())
+        {
+            m_SubscribedTopics.Add(topic);
+        }
+    }
+
+    public async Task UnsubscribeMessages(string topic)
+    {
+        if (m_Client.IsConnected)
+        {
+            await m_Client.UnsubscribeAsync(topic);
+        }
+
+        using (await m_SubscribedTopicsLock.LockAsync())
+        {
+            m_SubscribedTopics.Remove(topic);
+        }
+    }
+
+    public async Task PublishMessage(string topic, string payload)
+    {
+        if (m_Client.IsConnected)
+        {
+            await m_Client.PublishStringAsync(topic, payload);
+        }
+    }
 
     public event Func<string, string, Task> OnMessageReceived;
 }
