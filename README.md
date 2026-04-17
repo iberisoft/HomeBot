@@ -90,3 +90,36 @@ The service handles slash commands in the configured chat.
 
 You should register these commands in [@BotFather](https://t.me/BotFather) via `/setcommands` to show them in the Telegram UI.
 The bot will respond to these commands even if you skip registration.
+
+# Mosquitto Broker
+
+Use this when the MQTT broker runs on a Raspberry Pi and HomeBot (or other clients) connect over the network with **no username/password**.
+
+## Installation
+
+```bash
+sudo apt update
+sudo apt install -y mosquitto
+```
+
+## Configuration
+
+Mosquitto expects an explicit listener. Create a file:
+
+```bash
+sudo nano /etc/mosquitto/conf.d/local.conf
+```
+
+Minimal content for MQTT on port `1883` from any interface, with anonymous clients allowed:
+
+```
+listener 1883
+allow_anonymous true
+```
+
+Save the file, then restart Mosquitto:
+
+```bash
+sudo systemctl restart mosquitto
+sudo systemctl enable mosquitto
+```
